@@ -31,6 +31,8 @@ class VoiceCommandParserTopologyTest {
     public static final String VOICE_COMMAND_TEXT = "call john";
     @Mock
     private SpeechToTextService speechToTextService;
+    @Mock
+    private TranslateService translateService;
     private TopologyTestDriver topologyDriver;
     private TestInputTopic<String, VoiceCommand> voiceCommandInputTopic;
     private TestOutputTopic<String, ParsedVoiceCommand> recognizedCommandsOutputTopic;
@@ -70,6 +72,7 @@ class VoiceCommandParserTopologyTest {
         ParsedVoiceCommand inputParsedVoiceCommand = ParsedVoiceCommand.builder()
             .id(voiceCommand.getId())
             .text(VOICE_COMMAND_TEXT)
+            .language("en-US")
             .build();
         given(speechToTextService.speechToText(voiceCommand)).willReturn(inputParsedVoiceCommand);
 
@@ -81,5 +84,42 @@ class VoiceCommandParserTopologyTest {
 
         assertEquals(voiceCommand.getId(), parsedVoiceCommand.getId());
         assertEquals(VOICE_COMMAND_TEXT, parsedVoiceCommand.getText());
+    }
+
+    @Test
+    @DisplayName("Given a non-English voice command, When processed correctly Then I receive a ParsedVoiceCommand in the recognnized-commands topic.")
+    void testScenario2() {
+        // Preconditions (Given)
+        byte[] randomBytes = new byte[20];
+        new Random().nextBytes(randomBytes);
+        VoiceCommand voiceCommand = VoiceCommand.builder()
+            .id(UUID.randomUUID().toString())
+            .audio(randomBytes)
+            .audioCodec("FLAC")
+            .language("es-AR")
+            .build();
+
+        var inputParsedVoiceCommand = ParsedVoiceCommand.builder()
+            .id(voiceCommand.getId())
+            .text("llamar a juan")
+            .language("es-AR")
+            .build();
+        given(speechToTextService.speechToText(voiceCommand)).willReturn(inputParsedVoiceCommand);
+
+        var translatedVoiceCommand = ParsedVoiceCommand.builder()
+            .id(voiceCommand.getId())
+            .text("call juan")
+            .language("en-US")
+            .build();
+        given(translateService.translate(inputParsedVoiceCommand)).willReturn(translatedVoiceCommand);
+
+        // Actions (When)
+        voiceCommandInputTopic.pipeInput(voiceCommand);
+
+        // Verifications (Then)
+        var parsedVoiceCommand = recognizedCommandsOutputTopic.readValue();
+
+        assertEquals(voiceCommand.getId(), parsedVoiceCommand.getId());
+        assertEquals("call juan", parsedVoiceCommand.getText());
     }
 }
