@@ -10,6 +10,8 @@ import org.apache.kafka.streams.kstream.Produced;
 import org.example.model.ParsedVoiceCommand;
 import org.example.model.VoiceCommand;
 import org.example.serdes.JsonSerde;
+import org.example.service.SpeechToTextService;
+import org.example.service.TranslateService;
 
 public class VoiceCommandParserTopology {
 
@@ -36,7 +38,7 @@ public class VoiceCommandParserTopology {
             .branch((key, value) -> value.getLanguage().startsWith("en"), Branched.as("english"))
             .defaultBranch(Branched.as("non-english"));
         streamsMap.get("language-non-english")
-            .mapValues((key, value) ->translateService.translate(value))
+            .mapValues((key, value) -> translateService.translate(value))
             .merge(streamsMap.get("language-english"))
             .to(RECOGNIZED_COMMANDS_TOPIC, Produced.with(Serdes.String(), parsedVoiceCommandJsonSerde));
 

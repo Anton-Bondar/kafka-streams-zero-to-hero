@@ -8,6 +8,8 @@ import org.apache.kafka.streams.TopologyTestDriver;
 import org.example.model.ParsedVoiceCommand;
 import org.example.model.VoiceCommand;
 import org.example.serdes.JsonSerde;
+import org.example.service.SpeechToTextService;
+import org.example.service.TranslateService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
